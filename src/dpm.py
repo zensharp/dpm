@@ -29,7 +29,7 @@ class PosixShell:
             tryRun(f"mkdir --parents '{destinationRoot}'")
         if os.path.exists(destination):
             tryRun(f"rm -r '{destination}'");
-        tryRun(command)
+        return tryRun(command)
 
 class WslShell:
     def expandEnvironmentVariables(self, x):
@@ -60,14 +60,13 @@ class WslShell:
                 command = f"cp '{source}' '{destination}'"
         ### Transfer
         if (os.path.islink(source)):
-            if session.verbose:
-                print(f"Source '{source}' is a link. Skipping...")
-            return
+            print(f"Source '{source}' is a link. Skipping...")
+            return False
         if not os.path.exists(destinationRoot):
             tryRun(f"mkdir --parents '{destinationRoot}'")
         if os.path.exists(destination):
             tryRun(f"rm -r '{destination}'");
-        tryRun(command)
+        return tryRun(command)
 
 def expandGlob(x):
     if not x:
@@ -142,8 +141,9 @@ class Transfer:
 def tryRun(x):
     if session.dryRun:
         print(f"[DRY RUN] {x}")
-    else:
-        os.system(x)
+        return False
+    os.system(x)
+    return True
 
 def listOrSingle(x):
     if type(x) is list:
@@ -219,14 +219,12 @@ def execute(rawTransfer):
     transfers = list(transfers)
     if session.verb == "load":
         for transfer in transfers:
-            shell.Copy(transfer.source, transfer.destination, transfer.symlink);
-            if session.verbose and not session.dryRun:
+            if shell.Copy(transfer.source, transfer.destination, transfer.symlink):
                 print(f"Package item '{os.path.relpath(rawTransfer.source, packageRoot)}' loaded to '{transfer.destination}'...")
     elif session.verb == "pack":
         for transfer in transfers:
-            shell.Copy(transfer.destination, transfer.source, False);
-            if session.verbose and not session.dryRun:
-                print(f"Packaed item '{transfer.destination}' as '{os.path.relpath(rawTransfer.source, packageRoot)}'...")
+            if shell.Copy(transfer.destination, transfer.source, False):
+                print(f"Packed item '{transfer.destination}' as '{os.path.relpath(rawTransfer.source, packageRoot)}'...")
     elif session.verb == "lint":
         print(f"{os.path.relpath(rawTransfer.source, packageRoot)}")
         for transfer in transfers:
