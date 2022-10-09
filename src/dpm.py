@@ -59,6 +59,10 @@ class WslShell:
             else:
                 command = f"cp '{source}' '{destination}'"
         ### Transfer
+        if (os.path.islink(source)):
+            if session.verbose:
+                print(f"Source '{source}' is a link. Skipping...")
+            return
         if not os.path.exists(destinationRoot):
             tryRun(f"mkdir --parents '{destinationRoot}'")
         if os.path.exists(destination):
@@ -221,6 +225,8 @@ def execute(rawTransfer):
     elif session.verb == "pack":
         for transfer in transfers:
             shell.Copy(transfer.destination, transfer.source, False);
+            if session.verbose and not session.dryRun:
+                print(f"Packaed item '{transfer.destination}' as '{os.path.relpath(rawTransfer.source, packageRoot)}'...")
     elif session.verb == "lint":
         print(f"{os.path.relpath(rawTransfer.source, packageRoot)}")
         for transfer in transfers:
