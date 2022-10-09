@@ -25,6 +25,9 @@ class PosixShell:
             else:
                 command = f"cp '{source}' '{destination}'"
         ### Transfer
+        if (os.path.islink(source)):
+            print(f"Source '{source}' is a link. Skipping...")
+            return False
         if not os.path.exists(destinationRoot):
             tryRun(f"mkdir --parents '{destinationRoot}'")
         if os.path.exists(destination):
