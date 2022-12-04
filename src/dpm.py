@@ -176,10 +176,10 @@ def execute(transfer):
     if session.verb == "load":
         symlink = transfer.symlink and not config["force_no_symlinks"] or config["force_symlinks"]
         if shell.Copy(transfer.src, transfer.dest, symlink):
-            print(f"Package item '{os.path.relpath(transfer.src, packageRoot)}' loaded to '{transfer.dest}'...")
+            print(f"Loaded '{os.path.relpath(transfer.src, packageRoot)}' to '{transfer.dest}'...")
     elif session.verb == "pack":
         if shell.Copy(transfer.dest, transfer.src, False):
-            print(f"Packed item '{transfer.dest}' as '{os.path.relpath(transfer.src, packageRoot)}'...")
+            print(f"Packed '{transfer.dest}' as '{os.path.relpath(transfer.src, packageRoot)}'...")
     elif session.verb == "lint":
         suffix = "/" if os.path.isdir(transfer.src) else "";
         print(f"- source: {transfer.src}{suffix}")
