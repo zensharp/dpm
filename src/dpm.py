@@ -46,16 +46,16 @@ class WslShell:
         if symlink:
             source = winPath(source)
             if os.path.isdir(destination):
-                destination = winPath(destinationRoot)
+                winDestination = winPath(destinationRoot)
             else:
-                destination = os.path.join(winPath(destinationRoot), os.path.basename(destination))
+                winDestination = os.path.join(winPath(destinationRoot), os.path.basename(destination))
             if os.path.isdir(source):
                 command = f"cmd.exe /C mklink /D"
             else:
                 command = f"cmd.exe /C mklink"
             source = source.replace(os.sep, '\\')
-            destination = destination.replace(os.sep, '\\')
-            command = f"{command} '{destination}' '{source}'"
+            winDestination = winDestination.replace(os.sep, '\\')
+            command = f"{command} '{winDestination}' '{source}'"
         else:
             if os.path.isdir(source):
                 command = f"cp -r '{source}' '{destination}'"
