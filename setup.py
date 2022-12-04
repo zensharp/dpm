@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="DPM",
-    version="0.4.0",
+    version="0.4.1",
     author="ZenSharp",
     author_email="andtechstudios@gmail.com",
     description="A package manager for your dotfiles.",
