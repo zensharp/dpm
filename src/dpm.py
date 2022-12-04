@@ -69,7 +69,11 @@ class WslShell:
             tryRun(f"mkdir --parents '{destinationRoot}'")
         if os.path.exists(destination):
             tryRun(f"rm -r '{destination}'");
-        return tryRun(command)
+        oldpwd = os.getcwd()
+        os.chdir(os.path.dirname(destinationRoot))
+        status = tryRun(command)
+        os.chdir(oldpwd)
+        return status
 
 def expandGlob(x):
     if not x:
