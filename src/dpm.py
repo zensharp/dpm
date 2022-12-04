@@ -197,11 +197,13 @@ def execute(rawTransfer):
             if shell.Copy(transfer.destination, transfer.source, False):
                 print(f"Packed item '{transfer.destination}' as '{os.path.relpath(transfer.source, packageRoot)}'...")
     elif session.verb == "lint":
-        print(f"{os.path.relpath(rawTransfer.source, packageRoot)}")
+        suffix = "/" if os.path.isdir(rawTransfer.source) else "";
+        print(f"{os.path.relpath(rawTransfer.source, packageRoot)}{suffix}")
         for transfer in transfers:
-            print(f"- source:  {transfer.source}")
-            print(f"  dest:    {transfer.destination}")
-            print(f"  symlink: {transfer.symlink}")
+            suffix = "/" if os.path.isdir(transfer.source) else "";
+            print(f"- source: {transfer.source}{suffix}")
+            print(f"    dest: {transfer.destination}{suffix}")
+            print(f" symlink: {transfer.symlink}")
         print()
     else:
         print(f"Invalid verb '{session.verb}'...")
