@@ -162,49 +162,29 @@ def dictGet(dict, key, fallback):
         return dict[key]
     return fallback
 
-def transferExpandGlobs(transfer):
-    temp = []
-    for source in expandGlob(transfer.source):
-        for destination in expandGlob(transfer.destination):
-            sourcePath = source;
-            destinationPath = destination
-            symlink = transfer.symlink and not config["force_no_symlinks"] or config["force_symlinks"]
-            temp.append(Transfer(sourcePath, destinationPath, symlink))
-    return temp
-
-def transferProcessDests(transfer):
-    source = transfer.source
-    destination = transfer.destination
-    if destination.endswith("/") or destination.endswith("\\"):
-        destination = os.path.join(destination, os.path.relpath(source, packageRoot))
+def prefixDest(source, dest):
+    if dest.endswith("/") or dest.endswith("\\"):
+        dest = os.path.join(dest, os.path.relpath(source, packageRoot))
     else:
-        if os.path.isdir(destination):
-            destination = os.path.join(destination, os.path.relpath(source, packageRoot))
+        if os.path.isdir(dest):
+            dest = os.path.join(dest, os.path.relpath(source, packageRoot))
         else:
-            destination = destination
-    return Transfer(source, destination, transfer.symlink)
+            dest = dest
+    return dest
 
-def execute(rawTransfer):
-    transfers = transferExpandGlobs(rawTransfer)
-    transfers = map(transferProcessDests, transfers)
-    transfers = list(transfers)
+def execute(transfer):
     if session.verb == "load":
-        for transfer in transfers:
-            if shell.Copy(transfer.source, transfer.destination, transfer.symlink):
-                print(f"Package item '{os.path.relpath(transfer.source, packageRoot)}' loaded to '{transfer.destination}'...")
+        symlink = transfer.symlink and not config["force_no_symlinks"] or config["force_symlinks"]
+        if shell.Copy(transfer.source, transfer.destination, symlink):
+            print(f"Package item '{os.path.relpath(transfer.source, packageRoot)}' loaded to '{transfer.destination}'...")
     elif session.verb == "pack":
-        for transfer in transfers:
-            if shell.Copy(transfer.destination, transfer.source, False):
-                print(f"Packed item '{transfer.destination}' as '{os.path.relpath(transfer.source, packageRoot)}'...")
+        if shell.Copy(transfer.destination, transfer.source, False):
+            print(f"Packed item '{transfer.destination}' as '{os.path.relpath(transfer.source, packageRoot)}'...")
     elif session.verb == "lint":
-        suffix = "/" if os.path.isdir(rawTransfer.source) else "";
-        print(f"{os.path.relpath(rawTransfer.source, packageRoot)}{suffix}")
-        for transfer in transfers:
-            suffix = "/" if os.path.isdir(transfer.source) else "";
-            print(f"- source: {transfer.source}{suffix}")
-            print(f"    dest: {transfer.destination}{suffix}")
-            print(f" symlink: {transfer.symlink}")
-        print()
+        suffix = "/" if os.path.isdir(transfer.source) else "";
+        print(f"- source: {transfer.source}{suffix}")
+        print(f"    dest: {transfer.destination}{suffix}")
+        print(f" symlink: {transfer.symlink}")
     else:
         print(f"Invalid verb '{session.verb}'...")
         exit(1)
@@ -251,18 +231,19 @@ for include in manifest.include:
     sourcePath = shell.expandEnvironmentVariables(sourcePath)
     if "destination" in include:
         destinationOverride = include["destination"]
+        if os.path.isabs(destinationOverride):
+            destinationOverride = shell.expandEnvironmentVariables(destinationOverride)
+            destGlobs = [ destinationOverride ]
+        else:
+            destGlobs = map(lambda d : os.path.join(d, destinationOverride), destinations)
     else:
-        destinationOverride = ""
-    destinationOverride = shell.expandEnvironmentVariables(destinationOverride)
-    if os.path.isabs(destinationOverride):
-        destinationPath = destinationOverride
-        transfer = Transfer(sourcePath, destinationPath, dictGet(include, "symlink", False))
-        execute(transfer)
-    else:
-        for destination in destinations:
-            destinationPath = os.path.join(destination, destinationOverride)
-            transfer = Transfer(sourcePath, destinationPath, dictGet(include, "symlink", False))
-            execute(transfer)
+        destGlobs = destinations
+    for source in expandGlob(sourcePath):
+        for destGlob in destGlobs:
+            for dest in expandGlob(destGlob):
+                dest = prefixDest(source, dest)
+                transfer = Transfer(source, dest, dictGet(include, "symlink", False))
+                execute(transfer)
 
 # Hack for console_scripts
 def main():
