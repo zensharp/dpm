@@ -13,25 +13,25 @@ class PosixShell:
     def expandEnvironmentVariables(self, x):
         x = re.sub('~', '$HOME', x)
         return os.path.expandvars(x)
-    def Copy(self, source, destination, symlink):
-        source = os.path.abspath(source)
-        destination = os.path.abspath(destination)
-        destinationRoot = os.path.dirname(destination)
+    def Copy(self, src, dest, symlink):
+        src = os.path.abspath(src)
+        dest = os.path.abspath(dest)
+        destinationRoot = os.path.dirname(dest)
         if symlink:
-            command = f"ln -s '{source}' '{destination}'"
+            command = f"ln -s '{src}' '{dest}'"
         else:
-            if os.path.isdir(source):
-                command = f"cp -r '{source}' '{destination}'"
+            if os.path.isdir(src):
+                command = f"cp -r '{src}' '{dest}'"
             else:
-                command = f"cp '{source}' '{destination}'"
+                command = f"cp '{src}' '{dest}'"
         ### Transfer
-        if (os.path.islink(source)):
-            print(f"Source '{source}' is a link. Skipping...")
+        if (os.path.islink(src)):
+            print(f"Source '{src}' is a link. Skipping...")
             return False
         if not os.path.exists(destinationRoot):
             tryRun(f"mkdir --parents '{destinationRoot}'")
-        if os.path.exists(destination):
-            tryRun(f"rm -r '{destination}'");
+        if os.path.exists(dest):
+            tryRun(f"rm -r '{dest}'");
         return tryRun(command)
 
 class WslShell:
@@ -39,36 +39,36 @@ class WslShell:
         x = re.sub('~', '%userprofile%', x)
         x = re.sub('%([\w]+)%', lambda match: wslExpand(match.group(1)), x)
         return x
-    def Copy(self, source, destination, symlink):
-        source = os.path.abspath(source)
-        destination = os.path.abspath(destination)
-        destinationRoot = os.path.dirname(destination)
+    def Copy(self, src, dest, symlink):
+        src = os.path.abspath(src)
+        dest = os.path.abspath(dest)
+        destinationRoot = os.path.dirname(dest)
         if symlink:
-            source = winPath(source)
-            if os.path.isdir(destination):
+            src = winPath(src)
+            if os.path.isdir(dest):
                 winDestination = winPath(destinationRoot)
             else:
-                winDestination = os.path.join(winPath(destinationRoot), os.path.basename(destination))
-            if os.path.isdir(source):
+                winDestination = os.path.join(winPath(destinationRoot), os.path.basename(dest))
+            if os.path.isdir(src):
                 command = f"cmd.exe /C mklink /D"
             else:
                 command = f"cmd.exe /C mklink"
-            source = source.replace(os.sep, '\\')
+            src = src.replace(os.sep, '\\')
             winDestination = winDestination.replace(os.sep, '\\')
-            command = f"{command} '{winDestination}' '{source}'"
+            command = f"{command} '{winDestination}' '{src}'"
         else:
-            if os.path.isdir(source):
-                command = f"cp -r '{source}' '{destination}'"
+            if os.path.isdir(src):
+                command = f"cp -r '{src}' '{dest}'"
             else:
-                command = f"cp '{source}' '{destination}'"
+                command = f"cp '{src}' '{dest}'"
         ### Transfer
-        if (os.path.islink(source)):
-            print(f"Source '{source}' is a link. Skipping...")
+        if (os.path.islink(src)):
+            print(f"Source '{src}' is a link. Skipping...")
             return False
         if not os.path.exists(destinationRoot):
             tryRun(f"mkdir --parents '{destinationRoot}'")
-        if os.path.exists(destination):
-            tryRun(f"rm -r '{destination}'");
+        if os.path.exists(dest):
+            tryRun(f"rm -r '{dest}'");
         oldpwd = os.getcwd()
         os.chdir(os.path.dirname(destinationRoot))
         status = tryRun(command)
@@ -129,9 +129,9 @@ class Manifest:
         exit(1)
 
 class Transfer:
-    def __init__(self, source, destination, symlink):
-        self.source = source
-        self.destination = destination
+    def __init__(self, src, dest, symlink):
+        self.src = src
+        self.dest = dest
         self.symlink = symlink
 
 # Helper functions
@@ -162,12 +162,12 @@ def dictGet(dict, key, fallback):
         return dict[key]
     return fallback
 
-def prefixDest(source, dest):
+def prefixDest(src, dest):
     if dest.endswith("/") or dest.endswith("\\"):
-        dest = os.path.join(dest, os.path.relpath(source, packageRoot))
+        dest = os.path.join(dest, os.path.relpath(src, packageRoot))
     else:
         if os.path.isdir(dest):
-            dest = os.path.join(dest, os.path.relpath(source, packageRoot))
+            dest = os.path.join(dest, os.path.relpath(src, packageRoot))
         else:
             dest = dest
     return dest
@@ -175,15 +175,15 @@ def prefixDest(source, dest):
 def execute(transfer):
     if session.verb == "load":
         symlink = transfer.symlink and not config["force_no_symlinks"] or config["force_symlinks"]
-        if shell.Copy(transfer.source, transfer.destination, symlink):
-            print(f"Package item '{os.path.relpath(transfer.source, packageRoot)}' loaded to '{transfer.destination}'...")
+        if shell.Copy(transfer.src, transfer.dest, symlink):
+            print(f"Package item '{os.path.relpath(transfer.src, packageRoot)}' loaded to '{transfer.dest}'...")
     elif session.verb == "pack":
-        if shell.Copy(transfer.destination, transfer.source, False):
-            print(f"Packed item '{transfer.destination}' as '{os.path.relpath(transfer.source, packageRoot)}'...")
+        if shell.Copy(transfer.dest, transfer.src, False):
+            print(f"Packed item '{transfer.dest}' as '{os.path.relpath(transfer.src, packageRoot)}'...")
     elif session.verb == "lint":
-        suffix = "/" if os.path.isdir(transfer.source) else "";
-        print(f"- source: {transfer.source}{suffix}")
-        print(f"    dest: {transfer.destination}{suffix}")
+        suffix = "/" if os.path.isdir(transfer.src) else "";
+        print(f"- source: {transfer.src}{suffix}")
+        print(f"    dest: {transfer.dest}{suffix}")
         print(f" symlink: {transfer.symlink}")
     else:
         print(f"Invalid verb '{session.verb}'...")
@@ -227,8 +227,8 @@ for destinationGlob in manifest.getDestinationList(virtualPlatform):
 
 ## Cross source (glob) paths with destination paths
 for include in manifest.include:
-    sourcePath = os.path.join(packageRoot, include["path"])
-    sourcePath = shell.expandEnvironmentVariables(sourcePath)
+    srcGlob = os.path.join(packageRoot, include["path"])
+    srcGlob = shell.expandEnvironmentVariables(srcGlob)
     if "destination" in include:
         destinationOverride = include["destination"]
         if os.path.isabs(destinationOverride):
@@ -238,11 +238,11 @@ for include in manifest.include:
             destGlobs = map(lambda d : os.path.join(d, destinationOverride), destinations)
     else:
         destGlobs = destinations
-    for source in expandGlob(sourcePath):
+    for src in expandGlob(srcGlob):
         for destGlob in destGlobs:
             for dest in expandGlob(destGlob):
-                dest = prefixDest(source, dest)
-                transfer = Transfer(source, dest, dictGet(include, "symlink", False))
+                dest = prefixDest(src, dest)
+                transfer = Transfer(src, dest, dictGet(include, "symlink", False))
                 execute(transfer)
 
 # Hack for console_scripts
