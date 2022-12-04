@@ -212,10 +212,10 @@ def transferProcessDests(transfer):
     source = transfer.source
     destination = transfer.destination
     if destination.endswith("/") or destination.endswith("\\"):
-        destination = os.path.join(destination, os.path.basename(source))
+        destination = os.path.join(destination, os.path.relpath(source, packageRoot))
     else:
         if os.path.isdir(destination):
-            destination = os.path.join(destination, os.path.basename(source))
+            destination = os.path.join(destination, os.path.relpath(source, packageRoot))
         else:
             destination = destination
     return Transfer(source, destination, transfer.symlink)
