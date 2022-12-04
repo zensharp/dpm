@@ -184,7 +184,8 @@ def execute(transfer):
         suffix = "/" if os.path.isdir(transfer.src) else "";
         print(f"- source: {transfer.src}{suffix}")
         print(f"    dest: {transfer.dest}{suffix}")
-        print(f" symlink: {transfer.symlink}")
+        if transfer.symlink:
+            print(f" symlink: {transfer.symlink}")
     else:
         print(f"Invalid verb '{session.verb}'...")
         exit(1)
@@ -224,6 +225,7 @@ destinations = []
 for destinationGlob in manifest.getDestinationList(virtualPlatform):
     destinationGlob = shell.expandEnvironmentVariables(destinationGlob)
     destinations.append(destinationGlob)
+    print(destinationGlob)
 
 ## Cross source (glob) paths with destination paths
 for include in manifest.include:
@@ -231,8 +233,8 @@ for include in manifest.include:
     srcGlob = shell.expandEnvironmentVariables(srcGlob)
     if "destination" in include:
         destinationOverride = include["destination"]
+        destinationOverride = shell.expandEnvironmentVariables(destinationOverride)
         if os.path.isabs(destinationOverride):
-            destinationOverride = shell.expandEnvironmentVariables(destinationOverride)
             destGlobs = [ destinationOverride ]
         else:
             destGlobs = map(lambda d : os.path.join(d, destinationOverride), destinations)
