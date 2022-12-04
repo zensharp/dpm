@@ -75,16 +75,6 @@ class WslShell:
         os.chdir(oldpwd)
         return status
 
-def expandGlob(x):
-    if not x:
-        return []
-    temp = glob.glob(x)
-    if temp:
-        return temp
-    if os.path.exists(x):
-        return [x]
-    return [x]
-
 def wslPath(x):
     return subprocess.check_output(f"wslpath '{x}'", shell=True).decode('ascii').strip()
 def winPath(x):
@@ -145,6 +135,16 @@ class Transfer:
         self.symlink = symlink
 
 # Helper functions
+def expandGlob(x):
+    if not x:
+        return []
+    temp = glob.glob(x)
+    if temp:
+        return temp
+    if os.path.exists(x):
+        return [x]
+    return [x]
+
 def tryRun(x):
     if session.dryRun:
         print(f"[DRY RUN] {x}")
@@ -161,42 +161,6 @@ def dictGet(dict, key, fallback):
     if key in dict:
         return dict[key]
     return fallback
-
-# Begin code
-## Parse configuration
-parser = argparse.ArgumentParser(description="Dotfiles Package Manager", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("verb", help="The dotfile operation", nargs='?', default="load")
-parser.add_argument("id", help="The id of the package")
-parser.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
-parser.add_argument("-n", "--dry-run", action="store_true", help="Dry run mode")
-parser.add_argument("--windows", action="store_true", help="Install in 'windows' mode")
-parser.add_argument("--macos", action="store_true", help="Install in 'macOS' mode")
-parser.add_argument("--linux", action="store_true", help="Install in 'linux' mode")
-parser.add_argument("--wsl", action="store_true", help="Install in 'wsl' mode")
-parser.add_argument("-s", "--force-symlinks", action="store_true", help="Force all contents to be installed as symlinks")
-parser.add_argument("--force-no-symlinks", action="store_true", help="Force all contents to be installed as copies")
-config = vars(parser.parse_args())
-
-## Parse environment
-session = Session()
-if session.platform == "wsl":
-    shell = WslShell()
-    virtualPlatform = "windows"
-elif session.platform == "macos":
-    shell = PosixShell()
-    virtualPlatform = "macos"
-else:
-    shell = PosixShell()
-    virtualPlatform = "linux"
-packageRoot = os.path.join(os.path.expandvars('$HOME/.dotfiles'), config["id"])
-packagePath = os.path.join(packageRoot, "package.yml")
-manifest = Manifest(packagePath)
-
-## Compute destinations
-destinations = []
-for destinationGlob in manifest.getDestinationList(virtualPlatform):
-    destinationGlob = shell.expandEnvironmentVariables(destinationGlob)
-    destinations.append(destinationGlob)
 
 def transferExpandGlobs(transfer):
     temp = []
@@ -243,12 +207,48 @@ def execute(rawTransfer):
         print(f"Invalid verb '{session.verb}'...")
         exit(1)
 
+# Begin code
+## Parse configuration
+parser = argparse.ArgumentParser(description="Dotfiles Package Manager", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("verb", help="The dotfile operation", nargs='?', default="load")
+parser.add_argument("id", help="The id of the package")
+parser.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
+parser.add_argument("-n", "--dry-run", action="store_true", help="Dry run mode")
+parser.add_argument("--windows", action="store_true", help="Install in 'windows' mode")
+parser.add_argument("--macos", action="store_true", help="Install in 'macOS' mode")
+parser.add_argument("--linux", action="store_true", help="Install in 'linux' mode")
+parser.add_argument("--wsl", action="store_true", help="Install in 'wsl' mode")
+parser.add_argument("-s", "--force-symlinks", action="store_true", help="Force all contents to be installed as symlinks")
+parser.add_argument("--force-no-symlinks", action="store_true", help="Force all contents to be installed as copies")
+config = vars(parser.parse_args())
+
+## Parse environment
+session = Session()
+if session.platform == "wsl":
+    shell = WslShell()
+    virtualPlatform = "windows"
+elif session.platform == "macos":
+    shell = PosixShell()
+    virtualPlatform = "macos"
+else:
+    shell = PosixShell()
+    virtualPlatform = "linux"
+packageRoot = os.path.join(os.path.expandvars('$HOME/.dotfiles'), config["id"])
+packagePath = os.path.join(packageRoot, "package.yml")
+manifest = Manifest(packagePath)
+
+## Compute destinations
+destinations = []
+for destinationGlob in manifest.getDestinationList(virtualPlatform):
+    destinationGlob = shell.expandEnvironmentVariables(destinationGlob)
+    destinations.append(destinationGlob)
+
 ## Cross source (glob) paths with destination paths
 for include in manifest.include:
     sourcePath = os.path.join(packageRoot, include["path"])
     sourcePath = shell.expandEnvironmentVariables(sourcePath)
     if "destination" in include:
-        destinationOverride= include["destination"]
+        destinationOverride = include["destination"]
     else:
         destinationOverride = ""
     destinationOverride = shell.expandEnvironmentVariables(destinationOverride)
