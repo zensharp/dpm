@@ -225,7 +225,6 @@ destinations = []
 for destinationGlob in manifest.getDestinationList(virtualPlatform):
     destinationGlob = shell.expandEnvironmentVariables(destinationGlob)
     destinations.append(destinationGlob)
-    print(destinationGlob)
 
 ## Cross source (glob) paths with destination paths
 for include in manifest.include:
