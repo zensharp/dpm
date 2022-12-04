@@ -191,11 +191,11 @@ def execute(rawTransfer):
     if session.verb == "load":
         for transfer in transfers:
             if shell.Copy(transfer.source, transfer.destination, transfer.symlink):
-                print(f"Package item '{os.path.relpath(rawTransfer.source, packageRoot)}' loaded to '{transfer.destination}'...")
+                print(f"Package item '{os.path.relpath(transfer.source, packageRoot)}' loaded to '{transfer.destination}'...")
     elif session.verb == "pack":
         for transfer in transfers:
             if shell.Copy(transfer.destination, transfer.source, False):
-                print(f"Packed item '{transfer.destination}' as '{os.path.relpath(rawTransfer.source, packageRoot)}'...")
+                print(f"Packed item '{transfer.destination}' as '{os.path.relpath(transfer.source, packageRoot)}'...")
     elif session.verb == "lint":
         print(f"{os.path.relpath(rawTransfer.source, packageRoot)}")
         for transfer in transfers:
